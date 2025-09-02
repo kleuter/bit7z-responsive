@@ -36,6 +36,7 @@ enum struct OperationResult {
     CRCErrorEncrypted = ( 2 * NOperationResult::kWrongPassword ) + 1,
     OpenErrorEncrypted = ( 2 * NOperationResult::kWrongPassword ) + 2,
     EmptyPassword = ( 2 * NOperationResult::kWrongPassword ) + 3,
+    Aborted = ( 2 * NOperationResult::kWrongPassword ) + 4,
 };
 
 auto make_error_code( OperationResult error ) -> std::error_code;

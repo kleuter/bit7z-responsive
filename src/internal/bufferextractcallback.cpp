@@ -13,6 +13,7 @@
 #include "bitexception.hpp"
 #include "internal/bufferextractcallback.hpp"
 #include "internal/cbufferoutstream.hpp"
+#include "internal/progressoutstream.hpp"
 #include "internal/fs.hpp"
 #include "internal/stringutil.hpp"
 #include "internal/util.hpp"
@@ -73,9 +74,12 @@ auto BufferExtractCallback::getOutStream( uint32_t index, ISequentialOutStream**
         }
     }
 
-    auto outStreamLoc = bit7z::make_com< CBufferOutStream, ISequentialOutStream >( outBuffer );
-    mOutMemStream = outStreamLoc;
-    *outStream = outStreamLoc.Detach();
+    auto finalStream = bit7z::make_com< CBufferOutStream, IOutStream >( outBuffer );
+    if ( mHandler.progressCallback() ) {
+        finalStream = bit7z::make_com< ProgressOutStream, IOutStream >( finalStream, mHandler.progressCallback() );
+    }
+    mOutMemStream = finalStream;
+    *outStream = finalStream.Detach();
     return S_OK;
 }
 

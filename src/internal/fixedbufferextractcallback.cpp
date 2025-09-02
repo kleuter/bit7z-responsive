@@ -13,6 +13,7 @@
 #include "internal/cfixedbufferoutstream.hpp"
 #include "internal/fixedbufferextractcallback.hpp"
 #include "internal/util.hpp"
+#include "internal/progressoutstream.hpp"
 
 namespace bit7z {
 
@@ -46,10 +47,15 @@ auto FixedBufferExtractCallback::getOutStream( uint32_t index, ISequentialOutStr
         mHandler.fileCallback()( fullPath );
     }
 
-    auto outStreamLoc = bit7z::make_com< CFixedBufferOutStream, ISequentialOutStream >( mBuffer, mSize );
-    mOutMemStream = outStreamLoc;
-    *outStream = outStreamLoc.Detach();
+    auto finalStream = bit7z::make_com< CFixedBufferOutStream, IOutStream >( mBuffer, mSize );
+    if ( mHandler.progressCallback() ) {
+        finalStream = bit7z::make_com< ProgressOutStream, IOutStream >( finalStream, mHandler.progressCallback() );
+    }
+
+    mOutMemStream = finalStream;
+    *outStream = finalStream.Detach();
     return S_OK;
 }
 
 } // namespace bit7z
+

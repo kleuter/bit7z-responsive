@@ -23,40 +23,52 @@ BitArchiveReader::BitArchiveReader( const Bit7zLibrary& lib,
                                     const tstring& inArchive,
                                     ArchiveStartOffset archiveStart,
                                     const BitInFormat& format,
-                                    const tstring& password )
-    : BitAbstractArchiveOpener( lib, format, password ), BitInputArchive( *this, inArchive, archiveStart ) {}
+                                    const tstring& password,
+                                    const ProgressCallback& progressCallback )
+    : BitAbstractArchiveOpener( lib, format, password, progressCallback ),
+      BitInputArchive( *this, inArchive, archiveStart ) {}
 
 BitArchiveReader::BitArchiveReader( const Bit7zLibrary& lib,
                                     const tstring& inArchive,
                                     const BitInFormat& format,
-                                    const tstring& password )
-    : BitAbstractArchiveOpener( lib, format, password ), BitInputArchive( *this, inArchive ) {}
+                                    const tstring& password,
+                                    const ProgressCallback& progressCallback )
+    : BitAbstractArchiveOpener( lib, format, password, progressCallback ),
+      BitInputArchive( *this, inArchive ) {}
 
 BitArchiveReader::BitArchiveReader( const Bit7zLibrary& lib,
                                     const buffer_t& inArchive,
                                     ArchiveStartOffset archiveStart,
                                     const BitInFormat& format,
-                                    const tstring& password )
-    : BitAbstractArchiveOpener( lib, format, password ), BitInputArchive( *this, inArchive, archiveStart ) {}
+                                    const tstring& password,
+                                    const ProgressCallback& progressCallback )
+    : BitAbstractArchiveOpener( lib, format, password, progressCallback ),
+      BitInputArchive( *this, inArchive, archiveStart ) {}
 
 BitArchiveReader::BitArchiveReader( const Bit7zLibrary& lib,
                                     const buffer_t& inArchive,
                                     const BitInFormat& format,
-                                    const tstring& password )
-    : BitAbstractArchiveOpener( lib, format, password ), BitInputArchive( *this, inArchive ) {}
+                                    const tstring& password,
+                                    const ProgressCallback& progressCallback )
+    : BitAbstractArchiveOpener( lib, format, password, progressCallback ),
+      BitInputArchive( *this, inArchive ) {}
 
 BitArchiveReader::BitArchiveReader( const Bit7zLibrary& lib,
                                     std::istream& inArchive,
                                     ArchiveStartOffset archiveStart,
                                     const BitInFormat& format,
-                                    const tstring& password )
-    : BitAbstractArchiveOpener( lib, format, password ), BitInputArchive( *this, inArchive, archiveStart ) {}
+                                    const tstring& password,
+                                    const ProgressCallback& progressCallback )
+    : BitAbstractArchiveOpener( lib, format, password, progressCallback ),
+      BitInputArchive( *this, inArchive, archiveStart ) {}
 
 BitArchiveReader::BitArchiveReader( const Bit7zLibrary& lib,
                                     std::istream& inArchive,
                                     const BitInFormat& format,
-                                    const tstring& password )
-    : BitAbstractArchiveOpener( lib, format, password ), BitInputArchive( *this, inArchive ) {}
+                                    const tstring& password,
+                                    const ProgressCallback& progressCallback )
+    : BitAbstractArchiveOpener( lib, format, password, progressCallback ),
+      BitInputArchive( *this, inArchive ) {}
 
 auto BitArchiveReader::archiveProperties() const -> map< BitProperty, BitPropVariant > {
     map< BitProperty, BitPropVariant > result;
@@ -74,9 +86,15 @@ auto BitArchiveReader::archiveProperties() const -> map< BitProperty, BitPropVar
 auto BitArchiveReader::items() const -> std::vector< BitArchiveItemInfo > {
     const auto count = itemsCount();
 
+    ProgressCallback progClbk = progressCallback();
+
     std::vector< BitArchiveItemInfo > result;
     result.reserve( count );
     for ( uint32_t i = 0; i < count; ++i ) {
+        if ( progClbk && !progClbk( i ) ) {
+            throw BitException( "Items reading aborted", make_error_code( OperationResult::Aborted ) );
+        }
+
         BitArchiveItemInfo item( i );
         for ( uint32_t j = kpidNoProperty; j <= kpidCopyLink; ++j ) {
             // We cast property twice (here and in archiveProperty), to make the code is easier to read.
@@ -98,7 +116,7 @@ auto BitArchiveReader::foldersCount() const -> uint32_t {
 }
 
 auto BitArchiveReader::filesCount() const -> uint32_t {
-    return itemsCount() - foldersCount(); // I'm lazy :)
+    return itemsCount() - foldersCount();
 }
 
 auto BitArchiveReader::size() const -> uint64_t {
@@ -122,12 +140,24 @@ auto BitArchiveReader::hasEncryptedItems() const -> bool {
 }
 
 auto BitArchiveReader::isEncrypted() const -> bool {
-    if ( filesCount() == 0 ) {
-        return false;
+    bool hasFile = false;
+    ProgressCallback progClbk = progressCallback();
+
+    uint32_t processed = 0;
+    for ( const BitArchiveItem& item : *this ) {
+        if ( progClbk && !progClbk( processed++ ) ) {
+            throw BitException( "Encryption check aborted", make_error_code( OperationResult::Aborted ) );
+        }
+        if ( item.isDir() ) {
+            continue;
+        }
+        hasFile = true;
+        if ( !item.isEncrypted() ) {
+            return false;
+        }
     }
-    return std::all_of( cbegin(), cend(), []( const BitArchiveItem& item ) {
-        return item.isDir() || item.isEncrypted();
-    } );
+
+    return hasFile;
 }
 
 auto BitArchiveReader::isMultiVolume() const -> bool {

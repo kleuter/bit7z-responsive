@@ -15,6 +15,7 @@
 #include "internal/fsutil.hpp"
 #include "internal/stringutil.hpp"
 #include "internal/util.hpp"
+#include "internal/progressoutstream.hpp"
 
 using namespace std;
 using namespace NWindows;
@@ -139,9 +140,14 @@ auto FileExtractCallback::getOutStream( uint32_t index, ISequentialOutStream** o
             }
         }
 
-        auto outStreamLoc = bit7z::make_com< CFileOutStream >( mFilePathOnDisk, true );
-        mFileOutStream = outStreamLoc;
-        *outStream = outStreamLoc.Detach();
+        auto fileStream = bit7z::make_com< CFileOutStream >( mFilePathOnDisk, true );
+        CMyComPtr< IOutStream > finalStream( static_cast< IOutStream* >( fileStream ) );
+        if ( mHandler.progressCallback() ) {
+            finalStream = bit7z::make_com< ProgressOutStream, IOutStream >( finalStream, mHandler.progressCallback() );
+        }
+
+        mFileOutStream = fileStream;
+        *outStream = finalStream.Detach();
     } else if ( mRetainDirectories ) { // Directory, and we must retain it
         std::error_code error;
         fs::create_directories( mFilePathOnDisk, error );

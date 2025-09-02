@@ -24,7 +24,8 @@ OpenCallback::OpenCallback( const BitAbstractArchiveHandler& handler, fs::path a
     : Callback( handler ),
       mSubArchiveMode( false ),
       mArchivePath{ std::move( archivePath ) },
-      mPasswordWasAsked{ false } {}
+      mPasswordWasAsked{ false },
+      mOperationCanceled{ false } {}
 
 COM_DECLSPEC_NOTHROW
 STDMETHODIMP OpenCallback::SetTotal( const UInt64* /* files */, const UInt64* /* bytes */ ) noexcept {
@@ -32,7 +33,17 @@ STDMETHODIMP OpenCallback::SetTotal( const UInt64* /* files */, const UInt64* /*
 }
 
 COM_DECLSPEC_NOTHROW
-STDMETHODIMP OpenCallback::SetCompleted( const UInt64* /* files */, const UInt64* /* bytes */ ) noexcept {
+STDMETHODIMP OpenCallback::SetCompleted( const UInt64* /* files */, const UInt64* bytes ) noexcept {
+
+    if ( mHandler.progressCallback() && bytes != nullptr ) {
+        bool bContinue = mHandler.progressCallback()( *bytes );
+
+        if ( !bContinue ) {
+            mOperationCanceled = true;
+            return E_ABORT;
+        }
+    }
+
     return S_OK;
 }
 
@@ -112,6 +123,10 @@ STDMETHODIMP OpenCallback::CryptoGetTextPassword( BSTR* password ) noexcept {
 
 auto OpenCallback::passwordWasAsked() const -> bool {
     return mPasswordWasAsked;
+}
+
+auto OpenCallback::operationWasCanceled() const -> bool {
+    return mOperationCanceled;
 }
 
 } // namespace bit7z

@@ -47,6 +47,8 @@ auto OperationCategory::message( int errorValue ) const -> std::string {
             return "Reached an unexpected end of data.";
         case OperationResult::UnsupportedMethod:
             return "Unsupported method.";
+        case OperationResult::Aborted:
+            return "Operation aborted.";
         default:
             return "Unknown error.";
     }
@@ -70,6 +72,8 @@ auto OperationCategory::default_error_condition( int errorValue ) const noexcept
         case OperationResult::CRCErrorEncrypted:
         case OperationResult::OpenErrorEncrypted:
             return std::make_error_condition( std::errc::operation_not_permitted );
+        case OperationResult::Aborted:
+            return std::make_error_condition( std::errc::operation_canceled );
         default:
             return error_category::default_error_condition( errorValue );
     }

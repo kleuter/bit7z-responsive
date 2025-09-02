@@ -44,6 +44,9 @@ class OpenCallback final : public IArchiveOpenCallback,
         BIT7Z_NODISCARD
         auto passwordWasAsked() const -> bool;
 
+        BIT7Z_NODISCARD
+        auto operationWasCanceled() const -> bool;
+
         // IArchiveOpenCallback
         BIT7Z_STDMETHOD( SetTotal, const UInt64* files, const UInt64* bytes );
 
@@ -68,6 +71,7 @@ class OpenCallback final : public IArchiveOpenCallback,
         std::wstring mSubArchiveName;
         fs::path mArchivePath;
         bool mPasswordWasAsked;
+        bool mOperationCanceled;
 };
 
 }  // namespace bit7z

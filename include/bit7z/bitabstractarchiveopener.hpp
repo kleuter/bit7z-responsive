@@ -48,7 +48,8 @@ class BitAbstractArchiveOpener : public BitAbstractArchiveHandler {
     protected:
         BitAbstractArchiveOpener( const Bit7zLibrary& lib,
                                   const BitInFormat& format,
-                                  const tstring& password = {} );
+                                  const tstring& password = {},
+                                  const ProgressCallback& progressCallback = nullptr );
 
     private:
         const BitInFormat& mFormat;

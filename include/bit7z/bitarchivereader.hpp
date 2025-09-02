@@ -41,11 +41,12 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
          * @param format        the format of the input archive.
          * @param password      (optional) the password needed for opening the input archive.
          */
-        BitArchiveReader( const Bit7zLibrary& lib,
-                          const tstring& inArchive,
-                          ArchiveStartOffset archiveStart,
-                          const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
-                          const tstring& password = {} );
+          BitArchiveReader( const Bit7zLibrary& lib,
+                            const tstring& inArchive,
+                            ArchiveStartOffset archiveStart,
+                            const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
+                            const tstring& password = {},
+                            const ProgressCallback& progressCallback = nullptr );
 
         /**
          * @brief Constructs a BitArchiveReader object, opening the input file archive.
@@ -60,10 +61,11 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
          * @param format        the format of the input archive.
          * @param password      (optional) the password needed for opening the input archive.
          */
-        BitArchiveReader( const Bit7zLibrary& lib,
-                          const tstring& inArchive,
-                          const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
-                          const tstring& password = {} );
+          BitArchiveReader( const Bit7zLibrary& lib,
+                            const tstring& inArchive,
+                            const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
+                            const tstring& password = {},
+                            const ProgressCallback& progressCallback = nullptr );
 
         /**
          * @brief Constructs a BitArchiveReader object, opening the archive in the input buffer.
@@ -80,11 +82,12 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
          * @param format        the format of the input archive.
          * @param password      (optional) the password needed for opening the input archive.
          */
-        BitArchiveReader( const Bit7zLibrary& lib,
-                          const buffer_t& inArchive,
-                          ArchiveStartOffset archiveStart,
-                          const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
-                          const tstring& password = {} );
+          BitArchiveReader( const Bit7zLibrary& lib,
+                            const buffer_t& inArchive,
+                            ArchiveStartOffset archiveStart,
+                            const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
+                            const tstring& password = {},
+                            const ProgressCallback& progressCallback = nullptr );
 
         /**
          * @brief Constructs a BitArchiveReader object, opening the archive in the input buffer.
@@ -99,10 +102,11 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
          * @param format        the format of the input archive.
          * @param password      (optional) the password needed for opening the input archive.
          */
-        BitArchiveReader( const Bit7zLibrary& lib,
-                          const std::vector< byte_t >& inArchive,
-                          const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
-                          const tstring& password = {} );
+          BitArchiveReader( const Bit7zLibrary& lib,
+                            const std::vector< byte_t >& inArchive,
+                            const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
+                            const tstring& password = {},
+                            const ProgressCallback& progressCallback = nullptr );
 
         /**
          * @brief Constructs a BitArchiveReader object, opening the archive from the standard input stream.
@@ -119,11 +123,12 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
          * @param format        the format of the input archive.
          * @param password      (optional) the password needed for opening the input archive.
          */
-        BitArchiveReader( const Bit7zLibrary& lib,
-                          std::istream& inArchive,
-                          ArchiveStartOffset archiveStart,
-                          const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
-                          const tstring& password = {} );
+          BitArchiveReader( const Bit7zLibrary& lib,
+                            std::istream& inArchive,
+                            ArchiveStartOffset archiveStart,
+                            const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
+                            const tstring& password = {},
+                            const ProgressCallback& progressCallback = nullptr );
 
         /**
          * @brief Constructs a BitArchiveReader object, opening the archive from the standard input stream.
@@ -138,10 +143,11 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
          * @param format        the format of the input archive.
          * @param password      (optional) the password needed for opening the input archive.
          */
-        BitArchiveReader( const Bit7zLibrary& lib,
-                          std::istream& inArchive,
-                          const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
-                          const tstring& password = {} );
+          BitArchiveReader( const Bit7zLibrary& lib,
+                            std::istream& inArchive,
+                            const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
+                            const tstring& password = {},
+                            const ProgressCallback& progressCallback = nullptr );
 
         BitArchiveReader( const BitArchiveReader& ) = delete;
 
@@ -165,6 +171,7 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
 
         /**
          * @return a vector of all the archive items as BitArchiveItem objects.
+         * @throws BitException with code OperationResult::Aborted if the operation is cancelled via the progress callback.
          */
         BIT7Z_NODISCARD auto items() const -> vector< BitArchiveItemInfo >;
 
@@ -195,6 +202,7 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
 
         /**
          * @return true if and only if the archive has only encrypted items.
+         * @throws BitException with code OperationResult::Aborted if the operation is cancelled via the progress callback.
          */
         BIT7Z_NODISCARD auto isEncrypted() const -> bool;
 
@@ -221,18 +229,25 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
          * @param lib           the 7z library used.
          * @param inArchive     the archive to be read.
          * @param format        the format of the input archive.
+         * @param callback      (optional) the progress callback automatically set to stop reading operations.
          *
-         * @return true if and only if the archive has at least one encrypted item.
+         * @return an optional containing true if and only if the archive has at least one encrypted
+         *         item, or an empty optional if the operation is cancelled via the progress
+         *         callback.
          */
         template< typename T >
         BIT7Z_NODISCARD
         static auto isHeaderEncrypted( const Bit7zLibrary& lib,
                                        T&& inArchive,
-                                       const BitInFormat& format BIT7Z_DEFAULT_FORMAT ) -> bool {
+                                       const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
+                                       const ProgressCallback& callback = nullptr ) -> bool {
             try {
-                const BitArchiveReader reader{ lib, std::forward< T >( inArchive ), format };
+                BitArchiveReader reader{ lib, std::forward< T >( inArchive ), format, tstring(), callback };
                 return false;
             } catch ( const BitException& ex ) {
+                if ( ex.code() == std::errc::operation_canceled ) {
+                    throw;
+                }
                 return isOpenEncryptedError( ex.code() );
             }
         }
@@ -250,18 +265,25 @@ class BitArchiveReader final : public BitAbstractArchiveOpener, public BitInputA
          * @param lib           the 7z library used.
          * @param inArchive     the archive to be read.
          * @param format        the format of the input archive.
+         * @param callback      (optional) the progress callback automatically set to stop reading operations.
          *
-         * @return true if and only if the archive has only encrypted items.
+         * @return an optional containing true if and only if the archive has only encrypted items,
+         *         false otherwise; an empty optional if the operation is cancelled via the progress
+         *         callback.
          */
         template< typename T >
         BIT7Z_NODISCARD
         static auto isEncrypted( const Bit7zLibrary& lib,
                                  T&& inArchive,
-                                 const BitInFormat& format BIT7Z_DEFAULT_FORMAT ) -> bool {
+                                 const BitInFormat& format BIT7Z_DEFAULT_FORMAT,
+                                 const ProgressCallback& callback = nullptr ) -> bool {
             try {
-                const BitArchiveReader reader{ lib, std::forward< T >( inArchive ), format };
+                BitArchiveReader reader{ lib, std::forward< T >( inArchive ), format, tstring(), callback };
                 return reader.isEncrypted();
             } catch ( const BitException& ex ) {
+                if ( ex.code() == std::errc::operation_canceled ) {
+                    throw;
+                }
                 return isOpenEncryptedError( ex.code() );
             }
         }

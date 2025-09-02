@@ -26,8 +26,8 @@ class BitInFormat;
 using TotalCallback = std::function< void( uint64_t ) >;
 
 /**
- * @brief A std::function whose argument is the currently processed size of the ongoing operation and returns
- *        true or false whether the operation must continue or not.
+ * @brief A std::function whose argument is the currently processed input size of the ongoing operation and
+ *        returns true or false depending on whether the operation must continue or not.
  */
 using ProgressCallback = std::function< bool( uint64_t ) >;
 
@@ -228,7 +228,8 @@ class BitAbstractArchiveHandler {
     protected:
         explicit BitAbstractArchiveHandler( const Bit7zLibrary& lib,
                                             tstring password = {},
-                                            OverwriteMode overwriteMode = OverwriteMode::None );
+                                            OverwriteMode overwriteMode = OverwriteMode::None,
+                                            ProgressCallback progressCallback = nullptr );
 
     private:
         const Bit7zLibrary& mLibrary;

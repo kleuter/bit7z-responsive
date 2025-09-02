@@ -37,7 +37,18 @@ class BufferExtractCallback final : public ExtractCallback {
 
     private:
         map< tstring, vector< byte_t > >& mBuffersMap;
-        CMyComPtr< ISequentialOutStream > mOutMemStream;
+        
+        CMyComPtr< IOutStream > mOutMemStream;  // was ISequentialOutStream
+
+        /* Changing ISequentialOutStream to IOutStream aligns the member with the new stream type created in getOutStream. 
+           The output buffer is now wrapped in CBufferOutStream and optionally ProgressOutStream, 
+           both of which expose the full IOutStream interface; assigning that IOutStream pointer to a CMyComPtr<ISequentialOutStream> 
+           would require unsafe conversions and wouldn’t compile. Using IOutStream lets the progress-enabled stream be stored and later 
+           released correctly while still returning an ISequentialOutStream** to satisfy the 7‑Zip callback contract 
+
+           Same goes for FixedBufferExtractCallback 
+
+           */
 
         void releaseStream() override;
 

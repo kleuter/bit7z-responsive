@@ -13,6 +13,7 @@
 #include "internal/cstdoutstream.hpp"
 #include "internal/streamextractcallback.hpp"
 #include "internal/util.hpp"
+#include "internal/progressoutstream.hpp"
 
 using namespace std;
 using namespace NWindows;
@@ -48,10 +49,15 @@ auto StreamExtractCallback::getOutStream( uint32_t index, ISequentialOutStream**
         mHandler.fileCallback()( fullPath );
     }
 
-    auto outStreamLoc = bit7z::make_com< CStdOutStream, IOutStream >( mOutputStream );
-    mStdOutStream = outStreamLoc;
-    *outStream = outStreamLoc.Detach();
+    auto finalStream = bit7z::make_com< CStdOutStream, IOutStream >( mOutputStream );
+    if ( mHandler.progressCallback() ) {
+        finalStream = bit7z::make_com< ProgressOutStream, IOutStream >( finalStream, mHandler.progressCallback() );
+    }
+
+    mStdOutStream = finalStream;
+    *outStream = finalStream.Detach();
     return S_OK;
 }
 
 } // namespace bit7z
+

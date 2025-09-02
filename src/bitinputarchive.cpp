@@ -26,6 +26,7 @@
 #include "internal/fixedbufferextractcallback.hpp"
 #include "internal/streamextractcallback.hpp"
 #include "internal/opencallback.hpp"
+#include "internal/operationresult.hpp"
 #include "internal/stringutil.hpp"
 #include "internal/util.hpp"
 
@@ -109,9 +110,15 @@ auto BitInputArchive::openArchiveStream( const fs::path& name,
     }
 #endif
 
+    if ( res == E_ABORT && openCallback->operationWasCanceled() ) {
+        throw BitException( "Archive opening aborted", make_error_code( OperationResult::Aborted ),
+                            path_to_tstring( name ) );
+    }
+
     if ( res != S_OK ) {
         const auto error = openCallback->passwordWasAsked() ?
-                           make_error_code( OperationResult::OpenErrorEncrypted ) : make_hresult_code( res );
+                           make_error_code( OperationResult::OpenErrorEncrypted ) :
+                           ( res == S_FALSE ? make_error_code( OperationResult::IsNotArc ) : make_hresult_code( res ) );
         throw BitException( "Could not open the archive", error, path_to_tstring( name ) );
     }
 

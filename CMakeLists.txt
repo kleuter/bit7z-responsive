@@ -91,6 +91,7 @@ set( HEADERS
      src/internal/operationcategory.hpp
      src/internal/operationresult.hpp
      src/internal/processeditem.hpp
+     src/internal/progressoutstream.hpp
      src/internal/renameditem.hpp
      src/internal/stdinputitem.hpp
      src/internal/streamextractcallback.hpp
@@ -154,6 +155,7 @@ set( SOURCES
      src/internal/operationcategory.cpp
      src/internal/operationresult.cpp
      src/internal/processeditem.cpp
+     src/internal/progressoutstream.cpp
      src/internal/renameditem.cpp
      src/internal/stdinputitem.cpp
      src/internal/streamextractcallback.cpp

@@ -32,7 +32,7 @@ class FixedBufferExtractCallback final : public ExtractCallback {
     private:
         byte_t* mBuffer;
         size_t mSize;
-        CMyComPtr< ISequentialOutStream > mOutMemStream;
+        CMyComPtr< IOutStream > mOutMemStream;
 
         void releaseStream() override;
 
